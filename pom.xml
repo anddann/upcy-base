@@ -31,9 +31,12 @@
     <artifactId>aggregator</artifactId>
     <packaging>pom</packaging>
     <version>${revision}</version>
+
+
     <modules>
         <module>sigtest-generator</module>
         <module>commons</module>
+        <module>mvn-project-pipeline</module>
     </modules>
 
 
