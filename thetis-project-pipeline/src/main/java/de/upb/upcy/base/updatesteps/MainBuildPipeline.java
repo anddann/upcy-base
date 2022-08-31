@@ -31,13 +31,13 @@ public class MainBuildPipeline {
     options.addOption(
         Option.builder("mp")
             .longOpt("multi-projects")
-            .desc("use SIZE-byte blocks")
+            .desc("the folder containing the projects")
             .hasArg()
             .build());
     options.addOption(
         Option.builder("sp")
             .longOpt("singe-project")
-            .desc("use SIZE-byte blocks")
+            .desc("the folder containing the project")
             .hasArg()
             .build());
     options.addOption(
