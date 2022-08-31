@@ -36,7 +36,7 @@
     <modules>
         <module>sigtest-generator</module>
         <module>commons</module>
-        <module>mvn-project-pipeline</module>
+        <module>thetis-project-pipeline</module>
     </modules>
 
 
