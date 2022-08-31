@@ -1,5 +1,8 @@
 package de.upb.prestudy.worker.sootdiff.apicheck;
 
+import de.upb.upcy.base.sigtest.worker.sootdiff.apicheck.APICheck;
+import de.upb.upcy.base.sigtest.worker.sootdiff.apicheck.APICheckResult;
+import de.upb.upcy.base.sigtest.worker.sootdiff.apicheck.APICompatibility;
 import java.util.Collection;
 import java.util.Collections;
 import junit.framework.TestCase;

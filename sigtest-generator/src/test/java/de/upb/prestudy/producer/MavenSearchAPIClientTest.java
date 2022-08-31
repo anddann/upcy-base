@@ -4,7 +4,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import de.upb.prestudy.mvn.MavenSearchAPIClient;
+import de.upb.upcy.base.mvn.MavenSearchAPIClient;
 import java.io.IOException;
 import org.junit.Test;
 

@@ -3,6 +3,7 @@ package de.upb.prestudy.worker.sigtest.generator;
 import static org.junit.Assert.assertNotNull;
 
 import de.upb.upcy.base.commons.ArtifactInfo;
+import de.upb.upcy.base.sigtest.worker.sigtest.generator.Processor;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

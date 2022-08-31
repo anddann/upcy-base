@@ -2,8 +2,9 @@ package de.upb.prestudy.worker;
 
 import static org.junit.Assert.assertNotNull;
 
-import de.upb.prestudy.db.MongoDBHandler;
-import de.upb.prestudy.db.model.generate.SigTestDBDoc;
+import de.upb.upcy.base.sigtest.db.MongoDBHandler;
+import de.upb.upcy.base.sigtest.db.model.generate.SigTestDBDoc;
+import de.upb.upcy.base.sigtest.worker.Utils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

@@ -35,11 +35,7 @@
             <version>${revision}</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
+
 
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -151,8 +147,8 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <tag>${project.artifactId}-${project.version}</tag>
-                    <repository>${docker.image.prefix}</repository>
+                    <tag>${project.version}</tag>
+                    <repository>${docker.image.prefix}${project.artifactId}</repository>
                     <useMavenSettingsForAuth>true</useMavenSettingsForAuth>
                     <buildArgs>
                         <JAR_FILE>${project.build.finalName}.jar</JAR_FILE>
@@ -162,17 +158,6 @@
         </plugins>
     </build>
 
-    <repositories>
-        <repository>
-            <id>codeshield-facade</id>
-            <name>codeshield-facade</name>
-            <url>https://nexus.codeshield.de/repository/codeshield-facade/</url>
-        </repository>
-        <repository>
-            <id>jcenter</id>
-            <url>https://jcenter.bintray.com/</url>
-        </repository>
-    </repositories>
 
 
 </project>

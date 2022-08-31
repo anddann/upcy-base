@@ -3,10 +3,11 @@ package de.upb.prestudy.worker.sootdiff;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import de.upb.prestudy.db.MongoDBHandler;
-import de.upb.prestudy.db.model.generate.SigTestDBDoc;
-import de.upb.prestudy.db.model.sootdiff.BasicAPICheckDoc;
-import de.upb.prestudy.db.model.sootdiff.CallGraphCheckDoc;
+import de.upb.upcy.base.sigtest.db.MongoDBHandler;
+import de.upb.upcy.base.sigtest.db.model.generate.SigTestDBDoc;
+import de.upb.upcy.base.sigtest.db.model.sootdiff.BasicAPICheckDoc;
+import de.upb.upcy.base.sigtest.db.model.sootdiff.CallGraphCheckDoc;
+import de.upb.upcy.base.sigtest.worker.sootdiff.Processor;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
