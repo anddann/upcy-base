@@ -24,9 +24,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.cli.CommandLine;
@@ -49,24 +46,13 @@ public class MainComputeIncompatibilities {
   private static final Logger LOGGER = LoggerFactory.getLogger(MainComputeIncompatibilities.class);
 
   /** timout 3 minutes */
-  private static long TIMEOUT_IN_SEC = 360L;
-
-  public static int N_THREADS = 4;
+  private static long TIMEOUT_SIGTEST_SEC = 360L;
 
   static {
-    String nthreads = System.getenv("N_THREADS");
-    if (StringUtils.isNotBlank(nthreads)) {
-      try {
-        N_THREADS = Integer.parseInt(nthreads);
-      } catch (NumberFormatException e) {
-        // nothing
-      }
-    }
-
-    String timeOut = System.getenv("TIMEOUT");
+    String timeOut = System.getenv("TIMEOUT_SIGTEST");
     if (StringUtils.isNotBlank(timeOut)) {
       try {
-        TIMEOUT_IN_SEC = Long.parseLong(timeOut);
+        TIMEOUT_SIGTEST_SEC = Long.parseLong(timeOut);
       } catch (NumberFormatException e) {
         // nothing
       }
@@ -199,34 +185,30 @@ public class MainComputeIncompatibilities {
     Path statusCacheFolder = res.getRight();
     Set<String> doneProjects = res.getLeft();
 
-    // run in separate process
-    ExecutorService executorService = Executors.newFixedThreadPool(N_THREADS);
-
     for (Gav orgGav : orgNewGavs.keySet()) {
 
-      executorService.submit(
-          () -> {
-            try {
-              Path statusFile = statusCacheFolder.resolve(orgGav.toString());
+      {
+        try {
+          Path statusFile = statusCacheFolder.resolve(orgGav.toString());
 
-              MainGetStatistics mainGetStatistics = new MainGetStatistics();
+          MainGetStatistics mainGetStatistics = new MainGetStatistics();
 
-              mainGetStatistics.handle(
-                  orgGav.group,
-                  orgGav.artifact,
-                  sigTestDBDocs ->
-                      MainComputeIncompatibilities.pairsForComparison(sigTestDBDocs, orgNewGavs));
+          mainGetStatistics.handle(
+              orgGav.group,
+              orgGav.artifact,
+              sigTestDBDocs ->
+                  MainComputeIncompatibilities.pairsForComparison(sigTestDBDocs, orgNewGavs));
 
-              Files.createFile(statusFile);
+          Files.createFile(statusFile);
 
-              Files.write(statusFile, "DONE".getBytes(StandardCharsets.UTF_8));
+          Files.write(statusFile, "DONE".getBytes(StandardCharsets.UTF_8));
 
-            } catch (IOException e) {
-              LOGGER.error("Failed StatsGen of: " + orgGav, e);
-            }
-          });
+        } catch (IOException e) {
+          LOGGER.error("Failed StatsGen of: " + orgGav, e);
+        }
+      }
+      ;
     }
-    awaitTerminationAfterShutdown(executorService);
   }
 
   public static Map<Pair<String, String>, Collection<Pair<SigTestDBDoc, SigTestDBDoc>>>
@@ -304,39 +286,36 @@ public class MainComputeIncompatibilities {
     Path statusCacheFolder = res.getRight();
     Set<String> doneProjects = res.getLeft();
 
-    // run in separate process
-    ExecutorService executorService = Executors.newFixedThreadPool(N_THREADS);
     for (Gav orgGav : orgNewGavs.keySet()) {
-      executorService.submit(
-          () -> {
-            Path statusFile = statusCacheFolder.resolve(orgGav.toString());
-            try {
-              String json = OBJECT_MAPPER.writeValueAsString(orgGav);
-              System.out.println(
-                  "Start de.upb.thetis.eval.compatibility.SootDiffCompareProcess for: " + orgGav);
-              ArrayList<String> parameters = new ArrayList<>();
-              parameters.add(this.inputFile.toAbsolutePath().toString());
-              parameters.add(json);
-              final int retVal =
-                  JavaProcess.exec(
-                      SootDiffCompareProcess.class,
-                      Collections.emptyList(),
-                      parameters,
-                      TIMEOUT_IN_SEC);
-              System.out.println(
-                  "Done de.upb.thetis.eval.compatibility.SootDiffCompareProcess with return value: "
-                      + retVal);
-              Files.createFile(statusFile);
+      {
+        Path statusFile = statusCacheFolder.resolve(orgGav.toString());
+        try {
+          String json = OBJECT_MAPPER.writeValueAsString(orgGav);
+          System.out.println(
+              "Start de.upb.thetis.eval.compatibility.SootDiffCompareProcess for: " + orgGav);
+          ArrayList<String> parameters = new ArrayList<>();
+          parameters.add(this.inputFile.toAbsolutePath().toString());
+          parameters.add(json);
+          final int retVal =
+              JavaProcess.exec(
+                  SootDiffCompareProcess.class,
+                  Collections.emptyList(),
+                  parameters,
+                  TIMEOUT_SIGTEST_SEC);
+          System.out.println(
+              "Done de.upb.thetis.eval.compatibility.SootDiffCompareProcess with return value: "
+                  + retVal);
+          Files.createFile(statusFile);
 
-              Files.write(statusFile, "DONE".getBytes(StandardCharsets.UTF_8));
-            } catch (InterruptedException e) {
-              System.err.println("Timout for artifact: " + orgGav);
-            } catch (IOException e) {
-              e.printStackTrace();
-            }
-          });
+          Files.write(statusFile, "DONE".getBytes(StandardCharsets.UTF_8));
+        } catch (InterruptedException e) {
+          System.err.println("Timout for artifact: " + orgGav);
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
+      ;
     }
-    awaitTerminationAfterShutdown(executorService);
   }
 
   public void compareABI() throws IOException {
@@ -345,41 +324,37 @@ public class MainComputeIncompatibilities {
     Path statusCacheFolder = res.getRight();
     Set<String> doneProjects = res.getLeft();
 
-    // run in separate process
-    ExecutorService executorService = Executors.newFixedThreadPool(N_THREADS);
-
     for (Gav orgGav : orgNewGavs.keySet()) {
 
-      executorService.submit(
-          () -> {
-            Path statusFile = statusCacheFolder.resolve(orgGav.toString());
-            try {
-              String json = OBJECT_MAPPER.writeValueAsString(orgGav);
-              System.out.println(
-                  "Start de.upb.thetis.eval.compability.SigABICompareProcess for: " + orgGav);
-              ArrayList<String> parameters = new ArrayList<>();
-              parameters.add(this.inputFile.toAbsolutePath().toString());
-              parameters.add(json);
-              final int retVal =
-                  JavaProcess.exec(
-                      SigABICompareProcess.class,
-                      Collections.emptyList(),
-                      parameters,
-                      TIMEOUT_IN_SEC);
-              System.out.println(
-                  "Done de.upb.thetis.eval.compatibility.SigABICompareProcess with return value: "
-                      + retVal);
-              Files.createFile(statusFile);
+      {
+        Path statusFile = statusCacheFolder.resolve(orgGav.toString());
+        try {
+          String json = OBJECT_MAPPER.writeValueAsString(orgGav);
+          System.out.println(
+              "Start de.upb.thetis.eval.compability.SigABICompareProcess for: " + orgGav);
+          ArrayList<String> parameters = new ArrayList<>();
+          parameters.add(this.inputFile.toAbsolutePath().toString());
+          parameters.add(json);
+          final int retVal =
+              JavaProcess.exec(
+                  SigABICompareProcess.class,
+                  Collections.emptyList(),
+                  parameters,
+                  TIMEOUT_SIGTEST_SEC);
+          System.out.println(
+              "Done de.upb.thetis.eval.compatibility.SigABICompareProcess with return value: "
+                  + retVal);
+          Files.createFile(statusFile);
 
-              Files.write(statusFile, "DONE".getBytes(StandardCharsets.UTF_8));
-            } catch (InterruptedException e) {
-              System.err.println("Timout for artifact: " + orgGav);
-            } catch (IOException e) {
-              e.printStackTrace();
-            }
-          });
+          Files.write(statusFile, "DONE".getBytes(StandardCharsets.UTF_8));
+        } catch (InterruptedException e) {
+          System.err.println("Timout for artifact: " + orgGav);
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
+      ;
     }
-    awaitTerminationAfterShutdown(executorService);
   }
 
   public void compareSource() throws IOException {
@@ -395,51 +370,48 @@ public class MainComputeIncompatibilities {
     final Pair<Set<String>, Path> res = getDoneProjects("./sigtest_cmp_src_status");
     Path statusCacheFolder = res.getRight();
     Set<String> doneProjects = res.getLeft();
-    // run in separate process
-    ExecutorService executorService = Executors.newFixedThreadPool(N_THREADS);
 
     for (Gav orgGav : orgNewGavs.keySet()) {
 
-      executorService.submit(
-          () -> {
-            Path statusFile = statusCacheFolder.resolve(orgGav.toString());
+      {
+        Path statusFile = statusCacheFolder.resolve(orgGav.toString());
 
-            try {
-              String json = OBJECT_MAPPER.writeValueAsString(orgGav);
-              System.out.println(
-                  "Start de.upb.thetis.eval.compatibility.SigSrcCompareProcess for: " + orgGav);
-              ArrayList<String> parameters = new ArrayList<>();
-              parameters.add(this.inputFile.toAbsolutePath().toString());
-              parameters.add(json);
-              final int retVal =
-                  JavaProcess.exec(
-                      SigSrcCompareProcess.class,
-                      Collections.emptyList(),
-                      parameters,
-                      TIMEOUT_IN_SEC);
-              System.out.println(
-                  "Done de.upb.thetis.eval.compatibility.SigSrcCompareProcess with return value: "
-                      + retVal);
-              Files.createFile(statusFile);
+        try {
+          String json = OBJECT_MAPPER.writeValueAsString(orgGav);
+          System.out.println(
+              "Start de.upb.thetis.eval.compatibility.SigSrcCompareProcess for: " + orgGav);
+          ArrayList<String> parameters = new ArrayList<>();
+          parameters.add(this.inputFile.toAbsolutePath().toString());
+          parameters.add(json);
+          final int retVal =
+              JavaProcess.exec(
+                  SigSrcCompareProcess.class,
+                  Collections.emptyList(),
+                  parameters,
+                  TIMEOUT_SIGTEST_SEC);
+          System.out.println(
+              "Done de.upb.thetis.eval.compatibility.SigSrcCompareProcess with return value: "
+                  + retVal);
+          Files.createFile(statusFile);
 
-              Files.write(statusFile, "DONE".getBytes(StandardCharsets.UTF_8));
-            } catch (InterruptedException e) {
-              LOGGER.error("Timout for artifact: " + orgGav);
+          Files.write(statusFile, "DONE".getBytes(StandardCharsets.UTF_8));
+        } catch (InterruptedException e) {
+          LOGGER.error("Timout for artifact: " + orgGav);
 
-            } catch (JsonProcessingException e) {
-              LOGGER.error("Fail", e);
+        } catch (JsonProcessingException e) {
+          LOGGER.error("Fail", e);
 
-            } catch (IOException exception) {
-              LOGGER.error("Fail", exception);
-              try {
-                Files.write(statusFile, exception.getMessage().getBytes(StandardCharsets.UTF_8));
-              } catch (IOException ex) {
-                // nothing
-              }
-            }
-          });
+        } catch (IOException exception) {
+          LOGGER.error("Fail", exception);
+          try {
+            Files.write(statusFile, exception.getMessage().getBytes(StandardCharsets.UTF_8));
+          } catch (IOException ex) {
+            // nothing
+          }
+        }
+      }
+      ;
     }
-    awaitTerminationAfterShutdown(executorService);
   }
 
   private Pair<Set<String>, Path> getDoneProjects(String statusFolder) {
@@ -472,57 +444,39 @@ public class MainComputeIncompatibilities {
 
     final List<ArtifactInfo> artifactInfos = generateArtifactsForSig(this.orgNewGavs);
 
-    // run in separate process
-    ExecutorService executorService = Executors.newFixedThreadPool(N_THREADS);
-
     for (ArtifactInfo el : artifactInfos) {
 
       if (doneProjects.contains(el.toString())) {
         LOGGER.info("Skipping File: {}, already in status folder", el);
         continue;
       }
-      executorService.submit(
-          () -> {
-            Path statusFile = statusCacheFolder.resolve(el.toString());
+      {
+        Path statusFile = statusCacheFolder.resolve(el.toString());
 
-            try {
+        try {
 
-              String json = OBJECT_MAPPER.writeValueAsString(el);
-              System.out.println(
-                  "Start de.upb.thetis.eval.compatibility.SigTestProcess for: " + el);
-              final int retVal =
-                  JavaProcess.exec(
-                      SigTestProcess.class,
-                      Collections.emptyList(),
-                      Collections.singletonList(json),
-                      TIMEOUT_IN_SEC);
-              System.out.println(
-                  "Done de.upb.thetis.eval.compatibility.SigTestProcess with return value: "
-                      + retVal);
-              Files.createFile(statusFile);
+          String json = OBJECT_MAPPER.writeValueAsString(el);
+          System.out.println("Start de.upb.thetis.eval.compatibility.SigTestProcess for: " + el);
+          final int retVal =
+              JavaProcess.exec(
+                  SigTestProcess.class,
+                  Collections.emptyList(),
+                  Collections.singletonList(json),
+                  TIMEOUT_SIGTEST_SEC);
+          System.out.println(
+              "Done de.upb.thetis.eval.compatibility.SigTestProcess with return value: " + retVal);
+          Files.createFile(statusFile);
 
-              Files.write(statusFile, "DONE".getBytes(StandardCharsets.UTF_8));
+          Files.write(statusFile, "DONE".getBytes(StandardCharsets.UTF_8));
 
-            } catch (InterruptedException e) {
-              System.err.println("Timout for artifact: " + el);
+        } catch (InterruptedException e) {
+          System.err.println("Timout for artifact: " + el);
 
-            } catch (IOException e) {
-              LOGGER.error("Failed", e);
-            }
-          });
-    }
-    awaitTerminationAfterShutdown(executorService);
-  }
-
-  public void awaitTerminationAfterShutdown(ExecutorService threadPool) {
-    threadPool.shutdown();
-    try {
-      if (!threadPool.awaitTermination(60, TimeUnit.DAYS)) {
-        threadPool.shutdownNow();
+        } catch (IOException e) {
+          LOGGER.error("Failed", e);
+        }
       }
-    } catch (InterruptedException ex) {
-      threadPool.shutdownNow();
-      Thread.currentThread().interrupt();
+      ;
     }
   }
 
