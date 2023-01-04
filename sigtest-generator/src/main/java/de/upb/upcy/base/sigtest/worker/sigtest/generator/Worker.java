@@ -45,12 +45,6 @@ public class Worker {
             + ":"
             + artifactInfo.getVersion());
 
-    //    if (!StringUtils.equalsIgnoreCase(artifactInfo.getP(),"jar")) {
-    //      // no jar file
-    //      LOGGER.info("Skipping non jar file " + artifactInfo.getP());
-    //      return;
-    //    }
-
     if (StringUtils.contains(artifactInfo.getVersion(), "android")) {
       LOGGER.info(
           "Skipping artifact: "
