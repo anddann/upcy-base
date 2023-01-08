@@ -220,5 +220,13 @@
 
     </dependencyManagement>
 
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/anddann/upcy-base</url>
+        </repository>
+    </distributionManagement>
+
 
 </project>
