@@ -223,7 +223,7 @@
     <repositories>
         <repository>
             <!-- use the github package registry for sootdiff -->
-            <id>github-sse-sootdiff</id>
+            <id>github</id>
             <name>GitHub Packages</name>
             <url>https://maven.pkg.github.com/secure-software-engineering/sootdiff</url>
         </repository>
@@ -231,8 +231,8 @@
 
     <distributionManagement>
         <repository>
-            <id>github-sse-upcy</id>
-            <name>GitHub Packages</name>
+            <id>github</id>
+            <name>GitHub anddann Apache Maven Packages</name>
             <url>https://maven.pkg.github.com/anddann/upcy-base</url>
         </repository>
     </distributionManagement>
