@@ -15,7 +15,7 @@ The project contains
 To build this project run
 
 ```bash
-  mvn clean compile package
+  mvn clean compile package -P docker
 ```
 
 
