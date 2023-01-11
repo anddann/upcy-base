@@ -25,6 +25,9 @@
         <!-- dependency versions -->
         <slf4j.version>1.7.30</slf4j.version>
         <junit.version>4.13</junit.version>
+        <!-- docker build -->
+        <dockerfile.version>1.4.13</dockerfile.version>
+        <docker.image.prefix>ghcr.io/anddann/</docker.image.prefix>
     </properties>
 
     <groupId>de.upb.upcy.base</groupId>
@@ -38,6 +41,7 @@
         <module>commons</module>
         <module>naive-update-eval-pipeline</module>
     </modules>
+
 
 
     <build>
