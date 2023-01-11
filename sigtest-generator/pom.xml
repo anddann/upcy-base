@@ -12,11 +12,6 @@
 
     <artifactId>sigtest-generator</artifactId>
 
-    <properties>
-        <docker.image.prefix>ghcr.io/anddann/</docker.image.prefix>
-    </properties>
-
-
     <profiles>
         <profile>
             <id>docker</id>
@@ -48,6 +43,7 @@
             </build>
         </profile>
     </profiles>
+
 
     <dependencies>
         <dependency>
