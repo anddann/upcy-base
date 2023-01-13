@@ -1,13 +1,13 @@
 FROM openjdk:8
 
-ENTRYPOINT [ "java", "-jar", "/usr/share/cveanalyzer/cveanalyzer.jar"]
+ENTRYPOINT ["/bin/bash", "-c", "exec java -jar /usr/share/myservice/myservice.jar \"$@\"", "bash"]
 
 # Add Maven dependencies (not shaded into the artifact; Docker-cached)
-COPY target/lib /usr/share/cveanalyzer/lib
+COPY target/lib /usr/share/myservice/lib
 
 # Add the service itself
 ARG JAR_FILE
-ADD target/${JAR_FILE} /usr/share/cveanalyzer/cveanalyzer.jar
+ADD target/${JAR_FILE} /usr/share/myservice/myservice.jar
 
 
 RUN apt update
