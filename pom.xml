@@ -234,10 +234,11 @@
     </repositories>
 
     <distributionManagement>
+        <!-- https://dev.to/jakub_zalas/how-to-publish-maven-packages-to-a-single-github-repository-3lkc -->
         <repository>
-            <id>github</id>
-            <name>GitHub anddann Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/anddann/upcy-base</url>
+          <id>github</id>
+          <name>GitHub Packages</name>
+          <url>https://maven.pkg.github.com/anddann/m2-repository</url>
         </repository>
     </distributionManagement>
 
