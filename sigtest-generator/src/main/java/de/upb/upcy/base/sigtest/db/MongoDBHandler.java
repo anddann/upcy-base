@@ -73,18 +73,39 @@ public class MongoDBHandler {
     return res;
   }
 
+  public static int getMongoPortFromEnvironment() {
+    String res = System.getenv("MONGO_PORT");
+    try {
+      return Integer.parseInt(res);
+    } catch (NumberFormatException ex) {
+      return 27017;
+    }
+  }
+
   public static MongoDBHandler getInstance() {
     return getInstance(
-        getMongoHostFromEnvironment(), getMongoUSERFromEnvironment(), getMongoPWDFromEnvironment());
+        getMongoHostFromEnvironment(),
+        getMongoPortFromEnvironment(),
+        getMongoUSERFromEnvironment(),
+        getMongoPWDFromEnvironment());
+  }
+
+  public static MongoDBHandler getInstance(
+      String db_host, int db_port, String db_user, String db_pwd) {
+    String key = db_user + "@" + db_host;
+
+    return instances.computeIfAbsent(
+        key, x -> new MongoDBHandler(db_host, db_port, db_user, db_pwd));
   }
 
   public static MongoDBHandler getInstance(String db_host, String db_user, String db_pwd) {
     String key = db_user + "@" + db_host;
 
-    return instances.computeIfAbsent(key, x -> new MongoDBHandler(db_host, db_user, db_pwd));
+    return instances.computeIfAbsent(
+        key, x -> new MongoDBHandler(db_host, getMongoPortFromEnvironment(), db_user, db_pwd));
   }
 
-  private MongoDBHandler(String db_host, String db_user, String db_pwd) {
+  private MongoDBHandler(String db_host, int db_port, String db_user, String db_pwd) {
     CodecRegistry pojoCodecRegistry =
         fromRegistries(
             MongoClientSettings.getDefaultCodecRegistry(),
@@ -95,7 +116,7 @@ public class MongoDBHandler {
     MongoClientSettings settings =
         MongoClientSettings.builder()
             .applyToClusterSettings(
-                builder -> builder.hosts(Arrays.asList(new ServerAddress(db_host, 27017))))
+                builder -> builder.hosts(Arrays.asList(new ServerAddress(db_host, db_port))))
             .applyToSslSettings(builder -> builder.enabled(false))
             .codecRegistry(pojoCodecRegistry)
             .credential(credential)
