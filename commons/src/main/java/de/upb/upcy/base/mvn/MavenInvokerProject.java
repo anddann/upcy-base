@@ -35,7 +35,8 @@ public class MavenInvokerProject {
   private static final Logger LOGGER = LoggerFactory.getLogger(MavenInvokerProject.class);
   protected static final int TIMEOUT_IN_SECONDS = -1;
 
-  @JsonProperty protected Path buildFile;
+  @JsonProperty
+  protected Path buildFile;
 
   @JsonProperty
   private Collection<String> fullProjectClassPath,
@@ -43,18 +44,28 @@ public class MavenInvokerProject {
       sourceDirectories,
       runtimeDir = new ArrayList<>();
 
-  @JsonProperty private boolean compiled = false;
-  @JsonProperty private boolean initialized = false;
+  @JsonProperty
+  private boolean compiled = false;
+  @JsonProperty
+  private boolean initialized = false;
 
-  @JsonProperty private int exitCode;
-  @JsonProperty private String output;
-  @JsonProperty private String error;
+  @JsonProperty
+  private int exitCode;
+  @JsonProperty
+  private String output;
+  @JsonProperty
+  private String error;
 
-  /** Just here for jackson deserialization */
+  /**
+   * Just here for jackson deserialization
+   */
   @Deprecated
-  public MavenInvokerProject() {}
+  public MavenInvokerProject() {
+  }
 
-  /** @param buildFile The pom file of the represented Maven project */
+  /**
+   * @param buildFile The pom file of the represented Maven project
+   */
   public MavenInvokerProject(Path buildFile) {
     this.buildFile = buildFile;
     LOGGER.info("Maven project discovered: '{}'", buildFile);
@@ -80,17 +91,17 @@ public class MavenInvokerProject {
       if (!StringUtils.isBlank(localM2Repository)) {
         goals =
             ArrayUtils.addAll(
-                new String[] {"mvn", "-B", "-e", "-fae", "-Dmaven.repo.local=" + localM2Repository},
+                new String[]{"mvn", "-B", "-e", "-fae", "-Dmaven.repo.local=" + localM2Repository},
                 commands);
 
       } else {
-        goals = ArrayUtils.addAll(new String[] {"mvn", "-B", "-e", "-fae"}, commands);
+        goals = ArrayUtils.addAll(new String[]{"mvn", "-B", "-e", "-fae"}, commands);
       }
 
       // run the command via a bash as the current logged in user to make sure we can find 'pwd' and
       // other unix tools
 
-      goals = new String[] {"bash", "-l", "-c", String.join(" ", goals)};
+      goals = new String[]{"bash", "-l", "-c", String.join(" ", goals)};
 
       ProcessBuilder processBuilder = new ProcessBuilder(goals);
       processBuilder.directory(pomPath.getParent().toFile());
@@ -118,6 +129,106 @@ public class MavenInvokerProject {
             String.format(
                 "Maven returned a non-zero exit code %d when executing '%s'.\nStdout: %s\nStderr: %s",
                 exitCode, Joiner.on(" ").join(goals), output, error));
+      }
+
+      return Triple.of(exitCode, output, error);
+    } catch (ExecutionException | InterruptedException | IOException e) {
+      throw new BuildToolException(
+          String.format("Unable to invoke '%s'", Joiner.on(" ").join(commands)), e);
+    }
+  }
+
+  public enum JDK_MVN_DOCKER_IMAGE {
+    CORRETTO21("maven:3.9.9-amazoncorretto-21"),
+    CORRETTO8("maven:3.9.9-amazoncorretto-8"),
+    CORRETTO11("maven:3.9.9-amazoncorretto-11");
+
+    private String image;
+
+    JDK_MVN_DOCKER_IMAGE(String image) {
+      this.image = image;
+    }
+
+    public String getImage() {
+      return this.image;
+    }
+  }
+
+  public static Triple<Integer, String, String> runCommand(
+      JDK_MVN_DOCKER_IMAGE dockerImage, Path pomPath, int timeOutInSeconds, String... commands)
+      throws BuildToolException {
+    try {
+      Stopwatch watch = Stopwatch.createStarted();
+
+      // docker run -it --rm --name my-maven-project -v "$(pwd)":/usr/src/mymaven -w
+      // /usr/src/mymaven maven:3.3-jdk-8
+      String[] dockerCmd =
+          new String[]{
+              "docker",
+              "run",
+              "-it",
+              "--rm",
+              "-v",
+              pomPath.getParent().toFile() + ":/usr/src/mymaven",
+              "-w",
+              "-w /usr/src/mymaven",
+              dockerImage.getImage()
+          };
+
+      // warning! do not include -X here. callers of this method might expect certain output that
+      // does not contain debug logs. append it in caller if needed!
+      final String localM2Repository = ConfigInstance.instance().getLocalM2Repository();
+      String[] mvnGoals = ArrayUtils.addAll(new String[]{"mvn", "-B", "-e", "-fae"}, commands);
+      if (!StringUtils.isBlank(localM2Repository)) {
+        dockerCmd =
+            new String[]{
+                "docker",
+                "run",
+                "-it",
+                "--rm",
+                "-v",
+                pomPath.getParent().toFile() + ":/usr/src/mymaven",
+                "-v",
+                localM2Repository + ":/root/.m2",
+                "-w",
+                "-w /usr/src/mymaven",
+                dockerImage.getImage()
+            };
+      }
+
+      // run the command via a bash as the current logged in user to make sure we can find 'pwd' and
+      // other unix tools
+
+      String[] bashCmd =
+          new String[]{
+              "bash", "-l", "-c", String.join(" ", dockerCmd), String.join(" ", mvnGoals)
+          };
+
+      ProcessBuilder processBuilder = new ProcessBuilder(bashCmd);
+
+      final Triple<Integer, String, String> processRetCodeOutErr =
+          IOUtils.awaitTermination(processBuilder.start(), timeOutInSeconds);
+
+      int exitCode = processRetCodeOutErr.getLeft();
+      String output = processRetCodeOutErr.getMiddle();
+      String error = processRetCodeOutErr.getRight();
+
+      LOGGER.trace(
+          "Executing maven command '{}' with '{}' took {}",
+          Joiner.on(" ").join(bashCmd),
+          pomPath,
+          watch);
+
+      if (exitCode == IOUtils.TIMEOUT_EXITCODE) {
+        throw new BuildToolException(
+            String.format(
+                "The Maven process timed out when executing '%s'.\nStdout: %s\nStderr: %s",
+                Joiner.on(" ").join(dockerCmd), output, error));
+      } else if (exitCode != 0) {
+        throw new BuildToolException(
+            String.format(
+                "Maven returned a non-zero exit code %d when executing '%s'.\nStdout: %s\nStderr: %s",
+                exitCode, Joiner.on(" ").join(dockerCmd), output, error));
       }
 
       return Triple.of(exitCode, output, error);
@@ -289,6 +400,7 @@ public class MavenInvokerProject {
   }
 
   public static class BuildToolException extends Exception {
+
     public BuildToolException(String message) {
       super(message);
     }
