@@ -35,8 +35,7 @@ public class MavenInvokerProject {
   private static final Logger LOGGER = LoggerFactory.getLogger(MavenInvokerProject.class);
   protected static final int TIMEOUT_IN_SECONDS = -1;
 
-  @JsonProperty
-  protected Path buildFile;
+  @JsonProperty protected Path buildFile;
 
   @JsonProperty
   private Collection<String> fullProjectClassPath,
@@ -44,28 +43,18 @@ public class MavenInvokerProject {
       sourceDirectories,
       runtimeDir = new ArrayList<>();
 
-  @JsonProperty
-  private boolean compiled = false;
-  @JsonProperty
-  private boolean initialized = false;
+  @JsonProperty private boolean compiled = false;
+  @JsonProperty private boolean initialized = false;
 
-  @JsonProperty
-  private int exitCode;
-  @JsonProperty
-  private String output;
-  @JsonProperty
-  private String error;
+  @JsonProperty private int exitCode;
+  @JsonProperty private String output;
+  @JsonProperty private String error;
 
-  /**
-   * Just here for jackson deserialization
-   */
+  /** Just here for jackson deserialization */
   @Deprecated
-  public MavenInvokerProject() {
-  }
+  public MavenInvokerProject() {}
 
-  /**
-   * @param buildFile The pom file of the represented Maven project
-   */
+  /** @param buildFile The pom file of the represented Maven project */
   public MavenInvokerProject(Path buildFile) {
     this.buildFile = buildFile;
     LOGGER.info("Maven project discovered: '{}'", buildFile);
@@ -91,17 +80,17 @@ public class MavenInvokerProject {
       if (!StringUtils.isBlank(localM2Repository)) {
         goals =
             ArrayUtils.addAll(
-                new String[]{"mvn", "-B", "-e", "-fae", "-Dmaven.repo.local=" + localM2Repository},
+                new String[] {"mvn", "-B", "-e", "-fae", "-Dmaven.repo.local=" + localM2Repository},
                 commands);
 
       } else {
-        goals = ArrayUtils.addAll(new String[]{"mvn", "-B", "-e", "-fae"}, commands);
+        goals = ArrayUtils.addAll(new String[] {"mvn", "-B", "-e", "-fae"}, commands);
       }
 
       // run the command via a bash as the current logged in user to make sure we can find 'pwd' and
       // other unix tools
 
-      goals = new String[]{"bash", "-l", "-c", String.join(" ", goals)};
+      goals = new String[] {"bash", "-l", "-c", String.join(" ", goals)};
 
       ProcessBuilder processBuilder = new ProcessBuilder(goals);
       processBuilder.directory(pomPath.getParent().toFile());
@@ -163,36 +152,36 @@ public class MavenInvokerProject {
       // docker run -it --rm --name my-maven-project -v "$(pwd)":/usr/src/mymaven -w
       // /usr/src/mymaven maven:3.3-jdk-8
       String[] dockerCmd =
-          new String[]{
+          new String[] {
+            "docker",
+            "run",
+            "-it",
+            "--rm",
+            "-v",
+            pomPath.getParent().toFile() + ":/usr/src/mymaven",
+            "-w",
+            "-w /usr/src/mymaven",
+            dockerImage.getImage()
+          };
+
+      // warning! do not include -X here. callers of this method might expect certain output that
+      // does not contain debug logs. append it in caller if needed!
+      final String localM2Repository = ConfigInstance.instance().getLocalM2Repository();
+      String[] mvnGoals = ArrayUtils.addAll(new String[] {"mvn", "-B", "-e", "-fae"}, commands);
+      if (!StringUtils.isBlank(localM2Repository)) {
+        dockerCmd =
+            new String[] {
               "docker",
               "run",
               "-it",
               "--rm",
               "-v",
               pomPath.getParent().toFile() + ":/usr/src/mymaven",
+              "-v",
+              localM2Repository + ":/root/.m2",
               "-w",
               "-w /usr/src/mymaven",
               dockerImage.getImage()
-          };
-
-      // warning! do not include -X here. callers of this method might expect certain output that
-      // does not contain debug logs. append it in caller if needed!
-      final String localM2Repository = ConfigInstance.instance().getLocalM2Repository();
-      String[] mvnGoals = ArrayUtils.addAll(new String[]{"mvn", "-B", "-e", "-fae"}, commands);
-      if (!StringUtils.isBlank(localM2Repository)) {
-        dockerCmd =
-            new String[]{
-                "docker",
-                "run",
-                "-it",
-                "--rm",
-                "-v",
-                pomPath.getParent().toFile() + ":/usr/src/mymaven",
-                "-v",
-                localM2Repository + ":/root/.m2",
-                "-w",
-                "-w /usr/src/mymaven",
-                dockerImage.getImage()
             };
       }
 
@@ -200,8 +189,8 @@ public class MavenInvokerProject {
       // other unix tools
 
       String[] bashCmd =
-          new String[]{
-              "bash", "-l", "-c", String.join(" ", dockerCmd), String.join(" ", mvnGoals)
+          new String[] {
+            "bash", "-l", "-c", String.join(" ", dockerCmd), String.join(" ", mvnGoals)
           };
 
       ProcessBuilder processBuilder = new ProcessBuilder(bashCmd);
