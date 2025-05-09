@@ -36,6 +36,7 @@ public class MavenInvokerProject {
   protected static final int TIMEOUT_IN_SECONDS = -1;
 
   @JsonProperty protected Path buildFile;
+  private JDK_MVN_DOCKER_IMAGE dockerImage;
 
   @JsonProperty
   private Collection<String> fullProjectClassPath,
@@ -57,6 +58,12 @@ public class MavenInvokerProject {
   /** @param buildFile The pom file of the represented Maven project */
   public MavenInvokerProject(Path buildFile) {
     this.buildFile = buildFile;
+    LOGGER.info("Maven project discovered: '{}'", buildFile);
+  }
+
+  public MavenInvokerProject(Path buildFile, JDK_MVN_DOCKER_IMAGE dockerImage) {
+    this.buildFile = buildFile;
+    this.dockerImage = dockerImage;
     LOGGER.info("Maven project discovered: '{}'", buildFile);
   }
 
@@ -128,6 +135,7 @@ public class MavenInvokerProject {
   }
 
   public enum JDK_MVN_DOCKER_IMAGE {
+    NONE("none"),
     CORRETTO21("maven:3.9.9-amazoncorretto-21"),
     CORRETTO8("maven:3.9.9-amazoncorretto-8"),
     CORRETTO11("maven:3.9.9-amazoncorretto-11");
@@ -146,6 +154,10 @@ public class MavenInvokerProject {
   public static Triple<Integer, String, String> runCommand(
       JDK_MVN_DOCKER_IMAGE dockerImage, Path pomPath, int timeOutInSeconds, String... commands)
       throws BuildToolException {
+    if (dockerImage == JDK_MVN_DOCKER_IMAGE.NONE) {
+      return runCommand(pomPath, timeOutInSeconds, commands);
+    }
+
     try {
       Stopwatch watch = Stopwatch.createStarted();
 
@@ -270,7 +282,7 @@ public class MavenInvokerProject {
     }
 
     final Triple<Integer, String, String> compile =
-        runCommand(buildFile, getTimeOutInSeconds(), "compile", "--fail-at-end");
+        runCommand(this.dockerImage, buildFile, getTimeOutInSeconds(), "compile", "--fail-at-end");
     this.exitCode = compile.getLeft();
     this.output = compile.getMiddle();
     this.error = compile.getRight();
@@ -280,7 +292,8 @@ public class MavenInvokerProject {
   }
 
   public Triple<Integer, String, String> runCmd(String... commands) throws BuildToolException {
-    return MavenInvokerProject.runCommand(buildFile, getTimeOutInSeconds(), commands);
+    return MavenInvokerProject.runCommand(
+        this.dockerImage, buildFile, getTimeOutInSeconds(), commands);
   }
 
   public void initialize() throws BuildToolException {
@@ -301,7 +314,11 @@ public class MavenInvokerProject {
     commandList.add("--fail-at-end");
 
     String output =
-        runCommand(buildFile, getTimeOutInSeconds(), commandList.toArray(new String[0]))
+        runCommand(
+                this.dockerImage,
+                buildFile,
+                getTimeOutInSeconds(),
+                commandList.toArray(new String[0]))
             .getMiddle();
 
     this.fullProjectClassPath = pathForPattern(output, CP_PATTERN);
